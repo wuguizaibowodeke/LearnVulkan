@@ -1,0 +1,11 @@
+list(APPEND CMAKE_PREFIX_PATH "C:/Program Files (x86)/spdlog")
+find_package(spdlog REQUIRED)
+if (spdlog_FOUND)
+    #message(STATUS "cmake cmake GLFW found : ${spdlog_INCLUDE_DIRS}")
+    #message(STATUS "cmake cmake GLFW found : ${spdlog_LIBRARIES}")
+    #spdlog的-config.cmake貌似没有指定头文件目录，所以这里手动指定
+    set(Spdlog_INCLUDE_DIRS "C:/Program Files (x86)/spdlog/include")
+    set(Spdlog_LIBRARIES "C:/Program Files (x86)/spdlog/lib")
+    include_directories(${Spdlog_INCLUDE_DIRS})
+    link_directories(${Spdlog_LIBRARIES})
+endif ()
