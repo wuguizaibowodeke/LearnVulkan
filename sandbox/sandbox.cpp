@@ -1,6 +1,7 @@
-#include <iostream>
 #include "logger.h"
+#define  GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+#include "toy2d.h"
 
 int main()
 {
@@ -14,10 +15,11 @@ int main()
 	GLFWwindow* window = glfwCreateWindow(800, 600, "Sandbox", nullptr, nullptr);
 	if (!window)
 	{
-		std::cerr << "Failed to create window" << std::endl;
+		LOG_E("Failed to create window");
 		glfwTerminate();
 		return -1;
 	}
+	ToyEngine::init();
 
 	glfwMakeContextCurrent(window);
 
@@ -25,6 +27,8 @@ int main()
 	{
 		glfwPollEvents();
 	}
+
+	ToyEngine::Quit();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

@@ -1,8 +1,6 @@
 #pragma once
 
-
-
-namespace toy2d
+namespace ToyEngine
 {
 	void init();
 

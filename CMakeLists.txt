@@ -3,7 +3,6 @@ project(toy2D)
 
 set(CMAKE_CXX_STANDARD 17)
 
-
 include(cmake/FindVulkan.cmake)
 include(cmake/FindGLFW.cmake)
 include(cmake/FindSpdlog.cmake)
