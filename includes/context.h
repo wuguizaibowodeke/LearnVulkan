@@ -44,7 +44,9 @@ namespace ToyEngine
 	 private:
 		static std::unique_ptr<Context> m_instance;
 
+		std::vector<const char*> m_instanceLayers;
 
+		std::vector<const char*> m_instanceExtensions;
 	};
 
 } // toy2d
