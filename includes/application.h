@@ -3,6 +3,8 @@
 #include "base.h"
 #include "vkWindow.h"
 #include "swapChain.h"
+#include "shader.h"
+#include "pipeline.h"
 
 namespace ToyEngine
 {
@@ -27,9 +29,12 @@ namespace ToyEngine
 
 		void cleanup();
 
+		void createPipeline();
+
 	 private:
 		WindowPtr m_window;
 		SwapChainPtr m_swapChain;
+		PipelinePtr m_pipeline;
 	};
 
 } // ToyEngine

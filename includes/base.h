@@ -4,6 +4,8 @@
 #include <string>
 #include <map>
 #include <set>
+#include <fstream>
+#include <vector>
 
 #include "glm/glm.hpp"
 
