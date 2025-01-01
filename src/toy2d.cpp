@@ -5,11 +5,11 @@ namespace ToyEngine
 {
 	void init()
 	{
-		Context::Init();
+		//Context::Init();
 	}
 
 	void Quit()
 	{
-		Context::Quit();
+		//Context::Quit();
 	}
 }

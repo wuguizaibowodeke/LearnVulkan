@@ -1,4 +1,4 @@
-set(ENV{VULKAN_SDK} "C:/Program Files (x86)/VulkanSDK/1.3.296.0")
+set(ENV{VULKAN_SDK} "C:/VulkanSDK/1.3.296.0")
 find_package(Vulkan REQUIRED)
 if (Vulkan_FOUND)
     #message(STATUS "cmake cmake Vulkan found : ${Vulkan_INCLUDE_DIRS}")

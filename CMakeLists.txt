@@ -23,6 +23,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/log)
 aux_source_directory(src SRC)
 add_library(toy2d STATIC ${SRC})
 target_include_directories(toy2d PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+target_include_directories(toy2d PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/include)
 target_link_libraries(toy2d PUBLIC Vulkan::Vulkan glfw3 logger)
 
 add_subdirectory(sandbox)

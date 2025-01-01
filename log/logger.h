@@ -12,6 +12,8 @@ class Log
 
 	static void Init();
 
+	static void End();
+
 	static spdlog::logger *GetLoggerInstance()
 	{
 		assert(sLoggerInstance && "Logger instance is null,maybe you have not execute Log::Init().");

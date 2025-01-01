@@ -1,14 +1,14 @@
+#pragma once
 #include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_core.h"
 #include <memory>
 #include <optional>
+#include "base.h"
 
 namespace ToyEngine
 {
-	struct QueenFamilyIndices final
-	{
-		std::optional<uint32_t> graphicsQueue;
-	};
-
+	class Context;
+	using ContextPtr = std::shared_ptr<Context>;
 	class Context final // final means that this class cannot be inherited from
 	{
 	 public:
@@ -16,20 +16,43 @@ namespace ToyEngine
 		Context(const Context&) = delete; // delete means that this function cannot be called
 		Context& operator=(const Context&) = delete;
 
-		static void Init();
+		static ContextPtr create(bool enableValidationLayers);
+
+		static void Init(bool enableValidationLayers, GLFWwindow* window);
 		static void Quit();
 		static Context& getInstance();
 
+		void printAvailableExtensions();
+
+		std::vector<const char*> getRequiredExtensions();
+
+		//layer
+		bool checkValidationLayerSupport();
+
+		void setDebugger();
+
+		int rateDeviceSuitability(VkPhysicalDevice device);
+
+		bool isDeviceSuitable(VkPhysicalDevice device);
+
 	 public:
-		vk::Instance vk_instance;
-		vk::PhysicalDevice vk_physicalDevice;
-		//logical device
-		vk::Device vk_device;
-		vk::Queue vk_graphicsQueue;
-		QueenFamilyIndices vk_queueFamilyIndices;
+		VkInstance vk_instance{ VK_NULL_HANDLE };
+
+		VkPhysicalDevice vk_physicalDevice{ VK_NULL_HANDLE };
+
+		//存储当前渲染任务队列族的id
+		std::optional<uint32_t> vk_graphicsQueueFamilyIndex;
+		VkQueue vk_graphicsQueue{ VK_NULL_HANDLE };
+
+		std::optional<uint32_t> vk_presentQueueFamilyIndex;
+		VkQueue vk_presentQueue{ VK_NULL_HANDLE };
+
+		VkDevice vk_device{ VK_NULL_HANDLE };
+
+		VkSurfaceKHR vk_surface{ VK_NULL_HANDLE };
 
 	 private:
-		Context();
+		explicit Context(bool enableValidationLayers , GLFWwindow* window);
 
 		void createInstance();
 
@@ -41,13 +64,23 @@ namespace ToyEngine
 
 		void getGraphicsQueue();
 
+		void createSurface(GLFWwindow* window);
+
 	 private:
 		static std::unique_ptr<Context> m_instance;
+
+		bool m_enableValidationLayers{ false };
+
+		VkDebugUtilsMessengerEXT m_debugger{ VK_NULL_HANDLE };
 
 		std::vector<const char*> m_instanceLayers;
 
 		std::vector<const char*> m_instanceExtensions;
+
+		std::vector<const char*> m_deviceRequiredExtensions;
 	};
+
+#define vkContext Context::getInstance()
 
 } // toy2d
 

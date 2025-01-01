@@ -1,26 +1,86 @@
 ﻿#include "context.h"
 #include "logger.h"
-#include "tool.h"
-
-#include <iostream>
+#include "base.h"
 
 namespace ToyEngine
 {
 	std::unique_ptr<Context> Context::m_instance = nullptr;
 
-	Context::Context()
+	ContextPtr Context::create(bool enableValidationLayers)
 	{
+		//return std::make_shared<Context>(enableValidationLayers);
+		return nullptr;
+	}
+
+	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData)
+	{
+		std::cout << "Validation layer: " << pCallbackData->pMessage << std::endl;
+		return VK_FALSE;
+	}
+
+	static VkResult CreatDebugUtilsMessengerEXT(
+		VkInstance instance,
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+		const VkAllocationCallbacks* pAllocator,
+		VkDebugUtilsMessengerEXT* pDebugMessenger)
+	{
+		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+
+		if(func != nullptr)
+		{
+			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+		}
+		else
+		{
+			return VK_ERROR_EXTENSION_NOT_PRESENT;
+		}
+	}
+
+	static void DestroyDebugUtilsMessengerEXT(
+		VkInstance instance,
+		VkDebugUtilsMessengerEXT* pDebugMessenger,
+		const VkAllocationCallbacks* pAllocator)
+	{
+		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+
+		if(func != nullptr)
+		{
+			func(instance, *pDebugMessenger, pAllocator);
+		}
+	}
+
+	Context::Context(bool enableValidationLayers, GLFWwindow* window)
+		: m_enableValidationLayers(enableValidationLayers)
+	{
+		m_instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
+
+		m_deviceRequiredExtensions = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		};
+
+		//printAvailableExtensions();
 		createInstance();
 		pickPhysicalDevice();
+		createSurface(window);
 		queryQueueFamilyIndices();
 		createLogicalDevice();
 		getGraphicsQueue();
+
 	}
 
 	Context::~Context()
 	{
-		vk_device.destroy();
-		vk_instance.destroy();
+		if(m_enableValidationLayers)
+		{
+			DestroyDebugUtilsMessengerEXT(vk_instance, &m_debugger, nullptr);
+		}
+		vkDestroySurfaceKHR(vk_instance, vk_surface, nullptr);
+		vkDestroyDevice(vk_device, nullptr);
+		vkDestroyInstance(vk_instance, nullptr);
 	}
 
 	Context& Context::getInstance()
@@ -28,9 +88,9 @@ namespace ToyEngine
 		return *m_instance;
 	}
 
-	void Context::Init()
+	void Context::Init(bool enableValidationLayers, GLFWwindow* window)
 	{
-		m_instance.reset(new Context());
+		m_instance.reset(new Context(enableValidationLayers, window));
 	}
 
 	void Context::Quit()
@@ -40,84 +100,309 @@ namespace ToyEngine
 
 	void Context::createInstance()
 	{
-		vk::InstanceCreateInfo createInfo;
-		vk::ApplicationInfo appInfo;
-		appInfo.setApiVersion(VK_API_VERSION_1_3);
-		createInfo.setPApplicationInfo(&appInfo);
-		vk_instance = vk::createInstance(createInfo);
-
-		/*获取所有的层名字
-		auto layers = vk::enumerateInstanceLayerProperties();
-		for(auto& layer : layers)
+		if(m_enableValidationLayers && !checkValidationLayerSupport())
 		{
-		std::cout << layer.layerName << std::endl;
-		}*/
+			LOG_E("Validation layers requested, but not available.");
+			throw std::runtime_error("Validation layers requested, but not available.");
+		}
 
-		std::vector<const char*> layers = { "VK_LAYER_KHRONOS_validation" };
+		VkApplicationInfo appInfo{};
+		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+		appInfo.pApplicationName = "Toy2D";
+		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.pEngineName = "Toy2D";
+		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.apiVersion = VK_API_VERSION_1_3;
 
-		auto fun = [](const char* e1, const vk::LayerProperties& e2)
+		VkInstanceCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		createInfo.pApplicationInfo = &appInfo;
+
+		//extensions
+		auto extensions = getRequiredExtensions();
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+		createInfo.ppEnabledExtensionNames = extensions.data();
+
+		//layer
+		if(m_enableValidationLayers)
 		{
-		  return std::strcmp(e1, e2.layerName) == 0;
-		};
+			createInfo.enabledLayerCount = static_cast<uint32_t>(m_instanceLayers.size());
+			createInfo.ppEnabledLayerNames = m_instanceLayers.data();
+		}
+		else
+		{
+			createInfo.enabledLayerCount = 0;
+		}
 
-		removeNotSupportedElems<const char*, vk::LayerProperties>(layers,
-			vk::enumerateInstanceLayerProperties(),
-			fun);
-		createInfo.setPEnabledLayerNames(layers);
+		if(vkCreateInstance(&createInfo, nullptr, &vk_instance) != VK_SUCCESS)
+		{
+			LOG_E("Failed to create Vulkan instance.");
+			throw std::runtime_error("Failed to create Vulkan instance.");
+		}
+		else
+		{
+			LOG_I("Vulkan instance created successfully.");
+		}
 
-		vk_instance = vk::createInstance(createInfo);
+		setDebugger();
+	}
+
+	void Context::printAvailableExtensions()
+	{
+		uint32_t extensionCount = 0;
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+		std::vector<VkExtensionProperties> extensions(extensionCount);
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+		LOG_I("Available extensions:");
+		for(const auto& extension : extensions)
+		{
+			LOG_I("\t{}", extension.extensionName);
+		}
+	}
+
+	std::vector<const char*> Context::getRequiredExtensions()
+	{
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+		return extensions;
+	}
+
+	bool Context::checkValidationLayerSupport()
+	{
+		uint32_t layerCount = 0;
+		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+		std::vector<VkLayerProperties> availableLayers(layerCount);
+		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+		for(const auto& layerName : m_instanceLayers)
+		{
+			bool layerFound = false;
+
+			for(const auto& layerProperties : availableLayers)
+			{
+				if(std::strcmp(layerName, layerProperties.layerName) == 0)
+				{
+					layerFound = true;
+					break;
+				}
+			}
+
+			if(!layerFound)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void Context::setDebugger()
+	{
+		if(!m_enableValidationLayers)
+			return;
+
+		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+		createInfo.pfnUserCallback = debugCallback;
+		createInfo.pUserData = nullptr;
+
+		if(CreatDebugUtilsMessengerEXT(vk_instance, &createInfo, nullptr, &m_debugger) != VK_SUCCESS)
+		{
+			LOG_E("Failed to set up debugger.");
+			throw std::runtime_error("Failed to set up debugger.");
+		}
+		else
+		{
+			LOG_I("Debugger set up successfully.");
+		}
+	}
+
+	int Context::rateDeviceSuitability(VkPhysicalDevice device)
+	{
+		int score = 0;
+
+		//设备名称、类型、支持的Vulkan版本等
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+		//纹理压缩 浮点数运算特性 多视口渲染等
+		VkPhysicalDeviceFeatures deviceFeatures;
+		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+		if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
+			score += 1000;
+		}
+
+		score += static_cast<int>(deviceProperties.limits.maxImageDimension2D);
+
+		if(!deviceFeatures.geometryShader)
+		{
+			return 0;
+		}
+
+		return score;
+	}
+
+	bool Context::isDeviceSuitable(VkPhysicalDevice device)
+	{
+		//设备名称、类型、支持的Vulkan版本等
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+		//纹理压缩 浮点数运算特性 多视口渲染等
+		VkPhysicalDeviceFeatures deviceFeatures;
+		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+		return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceFeatures.geometryShader;
 	}
 
 	void Context::pickPhysicalDevice()
 	{
-		auto devices = vk_instance.enumeratePhysicalDevices();
-		if (devices.empty())
+		uint32_t deviceCount = 0;
+		vkEnumeratePhysicalDevices(vk_instance, &deviceCount, nullptr);
+
+		if(deviceCount == 0)
 		{
-			LOG_E("No physical device found");
-			return;
+			LOG_E("Failed to find GPUs with Vulkan support.");
+			throw std::runtime_error("Failed to find GPUs with Vulkan support.");
 		}
 
-		// 选择第一个物理设备
-		vk_physicalDevice = devices[0];
-		std::cout << "Physical device: " << vk_physicalDevice.getProperties().deviceName << std::endl;
-	}
+		std::vector<VkPhysicalDevice> devices(deviceCount);
+		vkEnumeratePhysicalDevices(vk_instance, &deviceCount, devices.data());
 
-	void Context::createLogicalDevice()
-	{
-		vk::DeviceCreateInfo createInfo;
-		vk::DeviceQueueCreateInfo queueCreateInfo;
-		float priority = 1.0f;
-		queueCreateInfo.setPQueuePriorities(&priority)
-						.setQueueCount(1)
-						.setQueueFamilyIndex(vk_queueFamilyIndices.graphicsQueue.value());
+		std::multimap<int, VkPhysicalDevice> candidates;
+		for(const auto& device : devices)
+		{
+			int score = rateDeviceSuitability(device);
+			candidates.insert(std::make_pair(score, device));
+		}
 
-		createInfo.setQueueCreateInfos(queueCreateInfo);
-		vk_device = vk_physicalDevice.createDevice(createInfo);
+		if(candidates.rbegin()->first > 0 && isDeviceSuitable(candidates.rbegin()->second))
+		{
+			vk_physicalDevice = candidates.rbegin()->second;
+		}
+
+		if(vk_physicalDevice == VK_NULL_HANDLE)
+		{
+			LOG_E("Failed to find a suitable GPU.");
+			throw std::runtime_error("Failed to find a suitable GPU.");
+		}
 	}
 
 	void Context::queryQueueFamilyIndices()
 	{
-		auto queueFamilyProperties = vk_physicalDevice.getQueueFamilyProperties();
-		for(int i = 0; i < queueFamilyProperties.size(); i++)
+		uint32_t queueFamilyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(vk_physicalDevice, &queueFamilyCount, nullptr);
+
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(vk_physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+		for(uint32_t i = 0; i < queueFamilyCount; i++)
 		{
-			const auto& property = queueFamilyProperties[i];
-			if(property.queueFlags & vk::QueueFlagBits::eGraphics)
+			if(queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 			{
-				vk_queueFamilyIndices.graphicsQueue = i;
+				vk_graphicsQueueFamilyIndex = i;
+			}
+			//寻找支持显示的队列族
+			VkBool32 presentSupport = VK_FALSE;
+			vkGetPhysicalDeviceSurfaceSupportKHR(vk_physicalDevice, i, vk_surface, &presentSupport);
+			if(presentSupport)
+			{
+				vk_presentQueueFamilyIndex = i;
+			}
+
+			if(vk_graphicsQueueFamilyIndex.has_value() && vk_presentQueueFamilyIndex.has_value())
+			{
 				break;
 			}
 		}
 
-		if(!vk_queueFamilyIndices.graphicsQueue.has_value())
+		if(!vk_graphicsQueueFamilyIndex.has_value() || !vk_presentQueueFamilyIndex.has_value())
 		{
-			LOG_E("No graphics queue found");
-			return;
+			LOG_E("Failed to find a suitable queue family.");
+			throw std::runtime_error("Failed to find a suitable queue family.");
 		}
+	}
+
+	void Context::createLogicalDevice()
+	{
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+		std::set<uint32_t> queueFamilyIndices = { vk_graphicsQueueFamilyIndex.value(), vk_presentQueueFamilyIndex.value() };
+
+		float queuePriority = 1.0f;
+		for(uint32_t queueFamilyIndex : queueFamilyIndices)
+		{
+			VkDeviceQueueCreateInfo queueCreateInfo{};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
+			queueCreateInfo.queueCount = 1;
+			queueCreateInfo.pQueuePriorities = &queuePriority;
+
+			queueCreateInfos.push_back(queueCreateInfo);
+		}
+
+		VkPhysicalDeviceFeatures deviceFeatures{};
+
+		VkDeviceCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		createInfo.pQueueCreateInfos = queueCreateInfos.data();
+		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+		createInfo.pEnabledFeatures = &deviceFeatures;
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceRequiredExtensions.size());
+		createInfo.ppEnabledExtensionNames = m_deviceRequiredExtensions.data();
+
+		if(m_enableValidationLayers)
+		{
+			createInfo.enabledLayerCount = static_cast<uint32_t>(m_instanceLayers.size());
+			createInfo.ppEnabledLayerNames = m_instanceLayers.data();
+		}
+		else
+		{
+			createInfo.enabledLayerCount = 0;
+		}
+
+		if(vkCreateDevice(vk_physicalDevice, &createInfo, nullptr, &vk_device) != VK_SUCCESS)
+		{
+			LOG_E("Failed to create logical device.");
+			throw std::runtime_error("Failed to create logical device.");
+		}
+		else
+		{
+			LOG_I("Logical device created successfully.");
+		}
+
+		vkGetDeviceQueue(vk_device,vk_graphicsQueueFamilyIndex.value(), 0, &vk_graphicsQueue);
+		vkGetDeviceQueue(vk_device, vk_presentQueueFamilyIndex.value(), 0, &vk_presentQueue);
 	}
 
 	void Context::getGraphicsQueue()
 	{
-		vk_graphicsQueue = vk_device.getQueue(vk_queueFamilyIndices.graphicsQueue.value(), 0);
+
+	}
+
+	void Context::createSurface(GLFWwindow* window)
+	{
+		if(glfwCreateWindowSurface(vk_instance, window, nullptr, &vk_surface) != VK_SUCCESS)
+		{
+			LOG_E("Failed to create window surface.");
+			throw std::runtime_error("Failed to create window surface.");
+		}
+		else
+		{
+			LOG_I("Window surface created successfully.");
+		}
 	}
 
 } // toy2d
