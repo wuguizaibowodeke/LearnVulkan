@@ -3,13 +3,15 @@
 
 namespace ToyEngine
 {
-	PipelinePtr Pipeline::create(VkDevice const& device)
+	PipelinePtr Pipeline::create(VkDevice const& device, const RenderpassPtr& renderpass)
 	{
-		return std::make_shared<Pipeline>(device);
+		return std::make_shared<Pipeline>(device, renderpass);
 	}
 
-	Pipeline::Pipeline(VkDevice const& device)
+	Pipeline::Pipeline(VkDevice const& device, const RenderpassPtr& renderpass)
 	{
+		m_renderpass = renderpass;
+
 		m_vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		m_inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		m_viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -22,6 +24,8 @@ namespace ToyEngine
 
 	Pipeline::~Pipeline()
 	{
+		m_renderpass.reset();
+
 		if(m_pipelineLayout != VK_NULL_HANDLE)
 		{
 			vkDestroyPipelineLayout(vkContext.vk_device, m_pipelineLayout, nullptr);
@@ -38,7 +42,7 @@ namespace ToyEngine
 		m_shaders = shaders;
 	}
 
-	void Pipeline::build()
+	void Pipeline::buildPipeline()
 	{
 		//设置shader
 		std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos;
@@ -86,7 +90,7 @@ namespace ToyEngine
 		pipelineCreateInfo.pColorBlendState = &m_colorBlending;
 		pipelineCreateInfo.pDepthStencilState = nullptr;//Todo:add depth stencil
 		pipelineCreateInfo.layout = m_pipelineLayout;
-		pipelineCreateInfo.renderPass = VK_NULL_HANDLE;//Todo:add render pass
+		pipelineCreateInfo.renderPass = m_renderpass->getRenderPass();
 		pipelineCreateInfo.subpass = 0;
 		//以存在的pipeline为基础进行创建，会更快，但是需要指定flags为VK_PIPELINE_CREATE_DERIVATIVE_BIT
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -96,13 +100,13 @@ namespace ToyEngine
 		{
 			vkDestroyPipeline(vkContext.vk_device, m_pipeline, nullptr);
 		}
-		//if(vkCreateGraphicsPipelines(vkContext.vk_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS)
+		if(vkCreateGraphicsPipelines(vkContext.vk_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS)
 		{
-			//throw std::runtime_error("Failed to create graphics pipeline.");
+			throw std::runtime_error("Failed to create graphics pipeline.");
 		}
-		//else
+		else
 		{
-			//LOG_I("Pipeline created successfully.");
+			LOG_I("Pipeline created successfully.");
 		}
 	}
 

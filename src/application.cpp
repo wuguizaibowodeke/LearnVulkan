@@ -25,8 +25,39 @@ namespace ToyEngine
 		m_swapChain = SwapChain::create(vkContext.vk_device,
 			vkContext.vk_surface, m_window);
 
-		m_pipeline = Pipeline::create(vkContext.vk_device);
+		m_renderpass = Renderpass::create(vkContext.vk_device);
+		createRenderpass();
+
+		m_swapChain->createFramebuffers(m_renderpass);
+
+		m_pipeline = Pipeline::create(vkContext.vk_device, m_renderpass);
 		createPipeline();
+
+		m_commandPool = CommandPool::create(vkContext.vk_device, vkContext.vk_graphicsQueueFamilyIndex.value());
+
+		m_commandBuffers.resize(m_swapChain->getImageCount());
+		for (size_t i = 0; i < m_swapChain->getImageCount(); i++)
+		{
+			m_commandBuffers[i] = CommandBuffer::create(vkContext.vk_device, m_commandPool);
+
+			m_commandBuffers[i]->begin();
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = m_renderpass->getRenderPass();
+			renderPassInfo.framebuffer = m_swapChain->getFramebuffers()[i];
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = m_swapChain->getExtent();
+
+			VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+			m_commandBuffers[i]->beginRenderPass(renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			m_commandBuffers[i]->bindGraphicPipeline(m_pipeline->getPipeline());
+			m_commandBuffers[i]->draw(3);
+			m_commandBuffers[i]->endRenderPass();
+			m_commandBuffers[i]->end();
+		}
 	}
 
 	void Application::mainLoop()
@@ -39,7 +70,13 @@ namespace ToyEngine
 
 	void Application::cleanup()
 	{
+		for (auto& commandBuffer : m_commandBuffers)
+		{
+			commandBuffer.reset();
+		}
+		m_commandPool.reset();
 		m_pipeline.reset();
+		m_renderpass.reset();
 		m_swapChain.reset();
 		Context::Quit();
 		m_window.reset();
@@ -136,6 +173,47 @@ namespace ToyEngine
 		m_pipeline->m_layout.pushConstantRangeCount = 0;
 		m_pipeline->m_layout.pPushConstantRanges = nullptr;
 
-		m_pipeline->build();
+		m_pipeline->buildPipeline();
+	}
+
+	void Application::createRenderpass()
+	{
+		//输入画布的描述
+		VkAttachmentDescription attachmentDes{};
+		attachmentDes.format = m_swapChain->getImageFormat();
+		attachmentDes.samples = VK_SAMPLE_COUNT_1_BIT;
+		attachmentDes.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachmentDes.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachmentDes.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachmentDes.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachmentDes.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		attachmentDes.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		m_renderpass->addAttachmentDescription(attachmentDes);
+
+		//对于画布的索引设置及格式要求
+		VkAttachmentReference attachmentRef{};
+		attachmentRef.attachment = 0;
+		attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		//创建子流程
+		Subpass subpass{};
+		subpass.addColorAttachmentReference(attachmentRef);
+		subpass.buildSubpassDescription();
+
+		m_renderpass->addSubpass(subpass);
+
+		//子流程之间的依赖关系
+		VkSubpassDependency dependency{};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		m_renderpass->addDependency(dependency);
+
+		m_renderpass->buildRenderpass();
 	}
 } // ToyEngine

@@ -24,7 +24,7 @@ namespace ToyEngine
 
 		[[nodiscard]] VkShaderModule getShaderModule() const;
 
-		[[nodiscard]] std::string getEntryPoint() const;
+		[[nodiscard]] const std::string& getEntryPoint() const;
 
 		[[nodiscard]] VkShaderStageFlagBits getStage() const;
 

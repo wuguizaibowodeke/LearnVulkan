@@ -62,7 +62,7 @@ namespace ToyEngine
 		return m_shaderModule;
 	}
 
-	std::string Shader::getEntryPoint() const
+	const std::string& Shader::getEntryPoint() const
 	{
 		return m_entryPoint;
 	}

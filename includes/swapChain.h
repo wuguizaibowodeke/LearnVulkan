@@ -2,6 +2,7 @@
 #include "base.h"
 #include "context.h"
 #include "vkWindow.h"
+#include "renderpass.h"
 
 namespace ToyEngine
 {
@@ -31,6 +32,20 @@ namespace ToyEngine
 
 		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+		[[nodiscard]] VkSwapchainKHR getSwapChain() const { return m_swapChain; }
+
+		[[nodiscard]] VkFormat getImageFormat() const { return m_imageFormat; }
+
+		[[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
+
+		[[nodiscard]] std::vector<VkImageView> getImageViews() const { return m_imageViews; }
+
+		[[nodiscard]] std::vector<VkFramebuffer> getFramebuffers() const { return m_framebuffers; }
+
+		[[nodiscard]] uint32_t getImageCount() const { return m_imageCount; }
+
+		void createFramebuffers(const RenderpassPtr& renderPass);
+
 	 private:
 		VkImageView createImageView(VkImage image,
 			VkFormat format,
@@ -49,6 +64,8 @@ namespace ToyEngine
 		std::vector<VkImage> m_images;
 		//对图像的管理
 		std::vector<VkImageView> m_imageViews;
+
+		std::vector<VkFramebuffer> m_framebuffers;
 	};
 
 } // ToyEngine

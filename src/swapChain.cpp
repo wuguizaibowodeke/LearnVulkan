@@ -87,7 +87,6 @@ namespace ToyEngine
 		{
 			m_imageViews[i] = createImageView(m_images[i], m_imageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
-
 	}
 
 	ToyEngine::SwapChain::~SwapChain()
@@ -95,6 +94,11 @@ namespace ToyEngine
 		for (auto imageView : m_imageViews)
 		{
 			vkDestroyImageView(vkContext.vk_device, imageView, nullptr);
+		}
+
+		for(auto framebuffer : m_framebuffers)
+		{
+			vkDestroyFramebuffer(vkContext.vk_device, framebuffer, nullptr);
 		}
 
 		if (m_swapChain != VK_NULL_HANDLE)
@@ -237,5 +241,29 @@ namespace ToyEngine
 		}
 
 		return imageView;
+	}
+
+	void SwapChain::createFramebuffers(const RenderpassPtr& renderPass)
+	{
+		m_framebuffers.resize(m_imageCount);
+		for (size_t i = 0; i < m_imageCount; i++)
+		{
+			//framebuffer 保存了一帧的数据，n个colorAttachment，1个depthAttachment/stencilAttachment
+			VkImageView attachments[] = { m_imageViews[i] };
+
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPass->getRenderPass();
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(std::size(attachments));
+			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.width = m_extent.width;
+			framebufferInfo.height = m_extent.height;
+			framebufferInfo.layers = 1;
+
+			if (vkCreateFramebuffer(vkContext.vk_device, &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Failed to create framebuffer.");
+			}
+		}
 	}
 } // ToyEngine

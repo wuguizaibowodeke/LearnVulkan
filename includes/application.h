@@ -5,6 +5,9 @@
 #include "swapChain.h"
 #include "shader.h"
 #include "pipeline.h"
+#include "renderpass.h"
+#include "commandpool.h"
+#include "commandBuffer.h"
 
 namespace ToyEngine
 {
@@ -31,10 +34,15 @@ namespace ToyEngine
 
 		void createPipeline();
 
+		void createRenderpass();
+
 	 private:
-		WindowPtr m_window;
-		SwapChainPtr m_swapChain;
-		PipelinePtr m_pipeline;
+		WindowPtr m_window{ nullptr };
+		SwapChainPtr m_swapChain{ nullptr };
+		PipelinePtr m_pipeline{ nullptr };
+		RenderpassPtr m_renderpass{ nullptr };
+		CommandPoolPtr m_commandPool{ nullptr };
+		std::vector<CommandBufferPtr> m_commandBuffers{};
 	};
 
 } // ToyEngine

@@ -2,6 +2,7 @@
 
 #include "base.h"
 #include "shader.h"
+#include "renderpass.h"
 
 namespace ToyEngine
 {
@@ -10,21 +11,25 @@ namespace ToyEngine
 	class Pipeline
 	{
 	 public:
-		static PipelinePtr create(const VkDevice& device);
+		static PipelinePtr create(const VkDevice& device, const RenderpassPtr& renderpass);
 
-		Pipeline(const VkDevice& device);
+		Pipeline(const VkDevice& device, const RenderpassPtr& renderpass);
 
 		~Pipeline();
 
 		void setShaderGroup(const std::vector<ShaderPtr>& shaders);
 
-		void build();
+		void buildPipeline();
 
 		void setViewport(const std::vector<VkViewport>& viewports);
 
 		void setScissors(const std::vector<VkRect2D>& scissors);
 
 		void pushBlendAttachment(const VkPipelineColorBlendAttachmentState& attachment);
+
+		[[nodiscard]] VkPipeline getPipeline() const { return m_pipeline; }
+
+		[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
 
 	 public:
 		VkPipelineVertexInputStateCreateInfo m_vertexInputInfo{};
@@ -40,6 +45,8 @@ namespace ToyEngine
 		//Todo::renderpass
 
 	 private:
+		RenderpassPtr m_renderpass { nullptr } ;
+
 		VkPipeline m_pipeline{ VK_NULL_HANDLE };
 
 		VkPipelineLayout m_pipelineLayout{ VK_NULL_HANDLE };
