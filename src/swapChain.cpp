@@ -26,7 +26,7 @@ namespace ToyEngine
 			m_imageCount = swapChainSupportInfo.m_Capabilities.maxImageCount;
 		}
 
-		//此处初始化必须置空，确保参数出现随机值
+		//此处初始化必须置空，确保参数不会出现随机值
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfo.surface = surface;
@@ -96,7 +96,7 @@ namespace ToyEngine
 			vkDestroyImageView(vkContext.vk_device, imageView, nullptr);
 		}
 
-		for(auto framebuffer : m_framebuffers)
+		for (auto framebuffer : m_framebuffers)
 		{
 			vkDestroyFramebuffer(vkContext.vk_device, framebuffer, nullptr);
 		}

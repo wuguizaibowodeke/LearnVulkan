@@ -58,6 +58,18 @@ namespace ToyEngine
 			m_commandBuffers[i]->endRenderPass();
 			m_commandBuffers[i]->end();
 		}
+
+		for (int i = 0; i < m_swapChain->getImageCount(); i++)
+		{
+			auto imageAvailableSemaphore = Semaphore::create(vkContext.vk_device);
+			m_imageAvailableSemaphores.push_back(Semaphore::create(vkContext.vk_device));
+
+			auto renderFinishedSemaphore = Semaphore::create(vkContext.vk_device);
+			m_renderFinishedSemaphores.push_back(Semaphore::create(vkContext.vk_device));
+
+			auto fence = Fence::create(vkContext.vk_device);
+			m_fences.push_back(fence);
+		}
 	}
 
 	void Application::mainLoop()
@@ -65,11 +77,83 @@ namespace ToyEngine
 		while (!m_window->shouldClose())
 		{
 			m_window->pollEvents();
+
+			render();
 		}
+
+		vkDeviceWaitIdle(vkContext.vk_device);
+	}
+
+	void Application::render()
+	{
+		//等待上一帧的渲染完成
+		m_fences[m_currentFrame]->block();
+
+		//获取交换链中的下一帧
+		uint32_t imageIndex = 0;
+		vkAcquireNextImageKHR(vkContext.vk_device, m_swapChain->getSwapChain(), UINT64_MAX,
+			m_imageAvailableSemaphores[m_currentFrame]->getSemaphore(), VK_NULL_HANDLE, &imageIndex);
+
+		//构建提交信息
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		//同步信息，渲染对于显示图像的依赖，显示完毕后，才输出颜色
+		VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrame]->getSemaphore() };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+
+		//提交的命令缓冲
+		auto commandBuffer = m_commandBuffers[imageIndex]->getCommandBuffer();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		//提交的信号量
+		VkSemaphore signalSemaphores[] = { m_renderFinishedSemaphores[m_currentFrame]->getSemaphore() };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		//提交信号量
+		m_fences[m_currentFrame]->resetFence();
+
+		//提交命令
+		if (vkQueueSubmit(vkContext.vk_graphicsQueue, 1, &submitInfo, m_fences[m_currentFrame]->getFence()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to submit draw command buffer.");
+		}
+
+		//提交显示
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapChains[] = { m_swapChain->getSwapChain() };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIndex;
+
+		vkQueuePresentKHR(vkContext.vk_presentQueue, &presentInfo);
+
+		m_currentFrame = (m_currentFrame + 1) % m_swapChain->getImageCount();
 	}
 
 	void Application::cleanup()
 	{
+	    for(auto &fence : m_fences)
+		{
+			fence.reset();
+		}
+		for(auto &semaphore : m_renderFinishedSemaphores)
+		{
+			semaphore.reset();
+		}
+		for(auto &semaphore : m_imageAvailableSemaphores)
+		{
+			semaphore.reset();
+		}
 		for (auto& commandBuffer : m_commandBuffers)
 		{
 			commandBuffer.reset();
@@ -216,4 +300,5 @@ namespace ToyEngine
 
 		m_renderpass->buildRenderpass();
 	}
+
 } // ToyEngine

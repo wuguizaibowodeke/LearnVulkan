@@ -52,7 +52,7 @@ namespace ToyEngine
 		VkSurfaceKHR vk_surface{ VK_NULL_HANDLE };
 
 	 private:
-		explicit Context(bool enableValidationLayers , GLFWwindow* window);
+		explicit Context(bool enableValidationLayers, GLFWwindow* window);
 
 		void createInstance();
 

@@ -72,4 +72,28 @@ namespace ToyEngine
 			throw std::runtime_error("Failed to record command buffer.");
 		}
 	}
+
+	void CommandBuffer::copyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, uint32_t copyInfoCount,
+		const std::vector<VkBufferCopy>& copyInfos)
+	{
+		vkCmdCopyBuffer(m_commandBuffer, srcBuffer, dstBuffer, copyInfoCount, copyInfos.data());
+	}
+
+	void CommandBuffer::submitSync(VkQueue const& queue, VkFence const& fence)
+	{
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &m_commandBuffer;
+
+		if (vkQueueSubmit(queue, 1, &submitInfo, fence) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to submit command buffer.");
+		}
+
+		if (vkQueueWaitIdle(queue) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to wait queue idle.");
+		}
+	}
 } // ToyEngine

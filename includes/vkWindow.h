@@ -28,7 +28,5 @@ namespace ToyEngine
 		unsigned int m_height{ 0 };
 	};
 
-
-
 } // ToyEngine
 

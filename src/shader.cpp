@@ -4,9 +4,9 @@ namespace ToyEngine
 {
 	static std::vector<char> readFile(const std::string& filename)
 	{
-		std::ifstream file(filename.c_str(),std::ios::ate | std::ios::binary | std::ios::in);
+		std::ifstream file(filename.c_str(), std::ios::ate | std::ios::binary | std::ios::in);
 
-		if(!file)
+		if (!file)
 		{
 			throw std::runtime_error("Failed to open file.");
 		}
@@ -43,7 +43,7 @@ namespace ToyEngine
 		createInfo.codeSize = codeBuffer.size();
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(codeBuffer.data());
 
-		if(vkCreateShaderModule(device, &createInfo, nullptr, &m_shaderModule) != VK_SUCCESS)
+		if (vkCreateShaderModule(device, &createInfo, nullptr, &m_shaderModule) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create shader module.");
 		}
@@ -51,7 +51,7 @@ namespace ToyEngine
 
 	Shader::~Shader()
 	{
-		if(m_shaderModule != VK_NULL_HANDLE)
+		if (m_shaderModule != VK_NULL_HANDLE)
 		{
 			vkDestroyShaderModule(vkContext.vk_device, m_shaderModule, nullptr);
 		}

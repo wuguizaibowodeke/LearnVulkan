@@ -30,7 +30,7 @@ namespace ToyEngine
 
 	void Subpass::buildSubpassDescription()
 	{
-		if(m_colorAttachmentReferences.empty())
+		if (m_colorAttachmentReferences.empty())
 		{
 			LOG_E("Color attachment reference is empty.");
 			throw std::runtime_error("Color attachment reference is empty.");
@@ -41,7 +41,7 @@ namespace ToyEngine
 		m_subpassDescription.pColorAttachments = m_colorAttachmentReferences.data();
 		m_subpassDescription.inputAttachmentCount = static_cast<uint32_t>(m_inputAttachmentReferences.size());
 
-		if(m_inputAttachmentReferences.empty())
+		if (m_inputAttachmentReferences.empty())
 		{
 			m_subpassDescription.pInputAttachments = nullptr;
 		}
@@ -71,7 +71,7 @@ namespace ToyEngine
 
 	Renderpass::~Renderpass()
 	{
-		if(m_renderPass != VK_NULL_HANDLE)
+		if (m_renderPass != VK_NULL_HANDLE)
 		{
 			vkDestroyRenderPass(vkContext.vk_device, m_renderPass, nullptr);
 		}
@@ -94,7 +94,7 @@ namespace ToyEngine
 
 	void Renderpass::buildRenderpass()
 	{
-		if(m_subpasses.empty() || m_attachmentDescriptions.empty() || m_dependencies.empty())
+		if (m_subpasses.empty() || m_attachmentDescriptions.empty() || m_dependencies.empty())
 		{
 			LOG_E("Subpass, attachment descriptions or dependencies is empty.");
 			throw std::runtime_error("Not enough element to build renderpass.");
@@ -102,7 +102,7 @@ namespace ToyEngine
 
 		//upwrap
 		std::vector<VkSubpassDescription> subpassDescriptions;
-		for(int i = 0; i < m_subpasses.size(); i++)
+		for (int i = 0; i < m_subpasses.size(); i++)
 		{
 			subpassDescriptions.push_back(m_subpasses[i].getSubpassDescription());
 		}
@@ -117,7 +117,7 @@ namespace ToyEngine
 		renderPassInfo.pSubpasses = subpassDescriptions.data();
 
 		VkDevice device = vkContext.vk_device;
-		if(vkCreateRenderPass(vkContext.vk_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+		if (vkCreateRenderPass(vkContext.vk_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
 		{
 			LOG_E("Failed to create render pass.");
 			throw std::runtime_error("Failed to create render pass.");

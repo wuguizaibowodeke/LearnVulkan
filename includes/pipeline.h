@@ -27,9 +27,15 @@ namespace ToyEngine
 
 		void pushBlendAttachment(const VkPipelineColorBlendAttachmentState& attachment);
 
-		[[nodiscard]] VkPipeline getPipeline() const { return m_pipeline; }
+		[[nodiscard]] VkPipeline getPipeline() const
+		{
+			return m_pipeline;
+		}
 
-		[[nodiscard]] VkPipelineLayout getPipelineLayout() const { return m_pipelineLayout; }
+		[[nodiscard]] VkPipelineLayout getPipelineLayout() const
+		{
+			return m_pipelineLayout;
+		}
 
 	 public:
 		VkPipelineVertexInputStateCreateInfo m_vertexInputInfo{};
@@ -45,7 +51,7 @@ namespace ToyEngine
 		//Todo::renderpass
 
 	 private:
-		RenderpassPtr m_renderpass { nullptr } ;
+		RenderpassPtr m_renderpass{ nullptr };
 
 		VkPipeline m_pipeline{ VK_NULL_HANDLE };
 

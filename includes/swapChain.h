@@ -32,17 +32,35 @@ namespace ToyEngine
 
 		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-		[[nodiscard]] VkSwapchainKHR getSwapChain() const { return m_swapChain; }
+		[[nodiscard]] VkSwapchainKHR getSwapChain() const
+		{
+			return m_swapChain;
+		}
 
-		[[nodiscard]] VkFormat getImageFormat() const { return m_imageFormat; }
+		[[nodiscard]] VkFormat getImageFormat() const
+		{
+			return m_imageFormat;
+		}
 
-		[[nodiscard]] VkExtent2D getExtent() const { return m_extent; }
+		[[nodiscard]] VkExtent2D getExtent() const
+		{
+			return m_extent;
+		}
 
-		[[nodiscard]] std::vector<VkImageView> getImageViews() const { return m_imageViews; }
+		[[nodiscard]] std::vector<VkImageView> getImageViews() const
+		{
+			return m_imageViews;
+		}
 
-		[[nodiscard]] std::vector<VkFramebuffer> getFramebuffers() const { return m_framebuffers; }
+		[[nodiscard]] std::vector<VkFramebuffer> getFramebuffers() const
+		{
+			return m_framebuffers;
+		}
 
-		[[nodiscard]] uint32_t getImageCount() const { return m_imageCount; }
+		[[nodiscard]] uint32_t getImageCount() const
+		{
+			return m_imageCount;
+		}
 
 		void createFramebuffers(const RenderpassPtr& renderPass);
 

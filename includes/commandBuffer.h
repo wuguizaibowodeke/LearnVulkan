@@ -25,9 +25,11 @@ namespace ToyEngine
 		//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT：这个标志位指示这个命令buffer可以被多个queue同时使用
 
 		//VkCommandBufferInheritanceInfo 如果本命令是二级buffer，那么这个结构体记录了他所属的主命令信息/继承信息
-		void begin(const VkCommandBufferUsageFlags flags = 0, const VkCommandBufferInheritanceInfo& inheritanceInfo = {});
+		void begin(const VkCommandBufferUsageFlags flags = 0,
+			const VkCommandBufferInheritanceInfo& inheritanceInfo = {});
 
-		void beginRenderPass(const VkRenderPassBeginInfo& renderPassInfo,const VkSubpassContents& contents = VK_SUBPASS_CONTENTS_INLINE);
+		void beginRenderPass(const VkRenderPassBeginInfo& renderPassInfo,
+			const VkSubpassContents& contents = VK_SUBPASS_CONTENTS_INLINE);
 
 		void bindGraphicPipeline(const VkPipeline& pipeline);
 
@@ -41,6 +43,11 @@ namespace ToyEngine
 		{
 			return m_commandBuffer;
 		}
+
+		void copyBuffer(const VkBuffer& srcBuffer, const VkBuffer& dstBuffer, uint32_t copyInfoCount,
+			const std::vector<VkBufferCopy>& copyInfos);
+
+		void submitSync(const VkQueue& queue, const VkFence& fence);
 
 	 private:
 		VkCommandBuffer m_commandBuffer{ VK_NULL_HANDLE };

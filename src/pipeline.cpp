@@ -26,12 +26,12 @@ namespace ToyEngine
 	{
 		m_renderpass.reset();
 
-		if(m_pipelineLayout != VK_NULL_HANDLE)
+		if (m_pipelineLayout != VK_NULL_HANDLE)
 		{
 			vkDestroyPipelineLayout(vkContext.vk_device, m_pipelineLayout, nullptr);
 		}
 
-		if(m_pipeline != VK_NULL_HANDLE)
+		if (m_pipeline != VK_NULL_HANDLE)
 		{
 			vkDestroyPipeline(vkContext.vk_device, m_pipeline, nullptr);
 		}
@@ -68,12 +68,12 @@ namespace ToyEngine
 		m_colorBlending.pAttachments = m_colorBlendAttachment.data();
 
 		//layout生成
-		if(m_pipelineLayout != VK_NULL_HANDLE)
+		if (m_pipelineLayout != VK_NULL_HANDLE)
 		{
 			vkDestroyPipelineLayout(vkContext.vk_device, m_pipelineLayout, nullptr);
 		}
 
-		if(vkCreatePipelineLayout(vkContext.vk_device, &m_layout, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+		if (vkCreatePipelineLayout(vkContext.vk_device, &m_layout, nullptr, &m_pipelineLayout) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create pipeline layout.");
 		}
@@ -96,11 +96,12 @@ namespace ToyEngine
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 		pipelineCreateInfo.basePipelineIndex = -1;
 
-		if(m_pipeline != VK_NULL_HANDLE)
+		if (m_pipeline != VK_NULL_HANDLE)
 		{
 			vkDestroyPipeline(vkContext.vk_device, m_pipeline, nullptr);
 		}
-		if(vkCreateGraphicsPipelines(vkContext.vk_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_pipeline) != VK_SUCCESS)
+		if (vkCreateGraphicsPipelines(vkContext.vk_device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &m_pipeline)
+			!= VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create graphics pipeline.");
 		}

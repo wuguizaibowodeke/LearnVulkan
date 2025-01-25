@@ -2,7 +2,7 @@
 
 namespace ToyEngine
 {
-	VkWindow::VkWindow(unsigned int width,unsigned int height)
+	VkWindow::VkWindow(unsigned int width, unsigned int height)
 	{
 		m_width = width;
 		m_height = height;
@@ -13,7 +13,7 @@ namespace ToyEngine
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 		m_window = glfwCreateWindow(m_width, m_height, "Vulkan Window", nullptr, nullptr);
-		if(m_window == nullptr)
+		if (m_window == nullptr)
 		{
 			throw std::runtime_error("Failed to create GLFW window.");
 		}
@@ -44,6 +44,5 @@ namespace ToyEngine
 	{
 		return std::make_shared<VkWindow>(width, height);
 	}
-
 
 } // ToyEngine

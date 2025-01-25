@@ -8,6 +8,8 @@
 #include "renderpass.h"
 #include "commandpool.h"
 #include "commandBuffer.h"
+#include "semaphore.h"
+#include "fence.h"
 
 namespace ToyEngine
 {
@@ -30,6 +32,8 @@ namespace ToyEngine
 
 		void mainLoop();
 
+		void render();
+
 		void cleanup();
 
 		void createPipeline();
@@ -37,12 +41,16 @@ namespace ToyEngine
 		void createRenderpass();
 
 	 private:
+		int m_currentFrame{ 0 };
 		WindowPtr m_window{ nullptr };
 		SwapChainPtr m_swapChain{ nullptr };
 		PipelinePtr m_pipeline{ nullptr };
 		RenderpassPtr m_renderpass{ nullptr };
 		CommandPoolPtr m_commandPool{ nullptr };
 		std::vector<CommandBufferPtr> m_commandBuffers{};
+		std::vector<SemaphorePtr> m_imageAvailableSemaphores{};
+		std::vector<SemaphorePtr> m_renderFinishedSemaphores{};
+		std::vector<FencePtr> m_fences{};
 	};
 
 } // ToyEngine
